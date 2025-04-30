@@ -26,14 +26,6 @@ async def start():
                 password
             )
 
-    # try:
-    #     await check_version("0xStarLabs", "StarLabs-Somnia")
-    # except Exception as e:
-    #     import traceback
-
-    #     traceback.print_exc()
-    #     logger.error(f"Failed to check version: {e}")
-    #     logger.info("Continue with current version\n")
 
     print("\nAvailable options:\n")
     print("[1] 🚀 Start farming")
