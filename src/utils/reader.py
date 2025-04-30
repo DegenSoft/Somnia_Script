@@ -50,27 +50,7 @@ def read_private_keys(file_path: str) -> list:
             if not key:
                 continue
 
-            try:
-                # Check if the line is a mnemonic phrase (12 or 24 words)
-                words = key.split()
-                if len(words) in [12, 24]:
-                    Account.enable_unaudited_hdwallet_features()
-                    account = Account.from_mnemonic(key)
-                    private_key = account.key.hex()
-                else:
-                    # Try to process as a private key
-                    if not key.startswith("0x"):
-                        key = "0x" + key
-                    # Verify that it's a valid private key
-                    Account.from_key(key)
-                    private_key = key
-
-                private_keys.append(private_key)
-
-            except Exception as e:
-                raise InvalidKeyError(
-                    f"Invalid key or mnemonic phrase at line {line_number}: {key[:10]}... Error: {str(e)}"
-                )
+            private_keys.append(key)
 
     logger.success(f"Successfully loaded {len(private_keys)} private keys.")
     return private_keys

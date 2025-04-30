@@ -10,7 +10,6 @@ from src.model.onchain.web3_custom import Web3Custom
 @dataclass
 class WalletInfo:
     account_index: int
-    private_key: str
     address: str
     balance: float
     transactions: int
@@ -50,7 +49,6 @@ class WalletStats:
 
             wallet_info = WalletInfo(
                 account_index=account_index,
-                private_key=private_key,
                 address=address,
                 balance=float(balance_eth),
                 transactions=tx_count,

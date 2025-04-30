@@ -137,7 +137,7 @@ def create_required_directories():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StarLabs Somnia Configuration</title>
+    <title>Somnia Configuration</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -156,7 +156,7 @@ def create_required_directories():
         <header>
             <div class="logo">
                 <i class="fas fa-star"></i>
-                <h1>StarLabs Somnia Configuration</h1>
+                <h1>Somnia Configuration</h1>
             </div>
             <div class="header-controls">
                 <button id="saveButton" class="btn save-btn"><i class="fas fa-save"></i> Save Configuration</button>

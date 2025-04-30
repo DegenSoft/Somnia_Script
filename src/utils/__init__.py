@@ -1,6 +1,5 @@
 from .client import create_client, create_twitter_client, get_headers
 from .reader import read_abi, read_txt_file, read_private_keys
-from .output import show_dev_info, show_logo
 from .config import get_config
 from .constants import EXPLORER_URL_SOMNIA
 from .statistics import print_wallets_stats
@@ -15,8 +14,6 @@ __all__ = [
     "read_config",
     "read_txt_file",
     "read_private_keys",
-    "show_dev_info",
-    "show_logo",
     "Proxy",
     "run",
     "get_config",

@@ -2,13 +2,12 @@ import asyncio
 import random
 from loguru import logger
 
-
+import getpass
 import src.utils
 
 from src.utils.proxy_parser import Proxy
 import src.model
 from src.utils.statistics import print_wallets_stats
-from src.utils.check_github_version import check_version
 from src.utils.logs import ProgressTracker, create_progress_tracker
 from src.utils.config_browser import run
 
@@ -24,6 +23,7 @@ async def start():
                 twitter_token,
                 config,
                 progress_tracker,
+                password
             )
 
     # try:
@@ -65,6 +65,8 @@ async def start():
         return
 
     config = src.utils.get_config()
+    
+    password = getpass.getpass("Enter wallets password: ")
 
     # Load proxies using proxy parser
     try:
@@ -207,7 +209,7 @@ async def start():
 
     await asyncio.gather(*tasks)
 
-    logger.success("Saved accounts and private keys to a file.")
+    logger.success("Saved accounts to a file.")
 
     print_wallets_stats(config)
 
@@ -222,6 +224,7 @@ async def account_flow(
     twitter_token: str,
     config: src.utils.config.Config,
     progress_tracker: ProgressTracker,
+    password: str,
 ):
     try:
         pause = random.randint(
@@ -232,7 +235,7 @@ async def account_flow(
         await asyncio.sleep(pause)
 
         instance = src.model.Start(
-            account_index, proxy, private_key, config, discord_token, twitter_token
+            account_index, proxy, private_key, config, discord_token, twitter_token, password
         )
 
         result = await wrapper(instance.initialize, config)

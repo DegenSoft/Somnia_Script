@@ -25,16 +25,12 @@ def print_wallets_stats(config: Config, excel_path="data/progress.xlsx"):
         total_transactions = 0
 
         for wallet in sorted_wallets:
-            # Маскируем приватный ключ (последние 5 символов)
-            masked_key = "•" * 3 + wallet.private_key[-5:]
-
             total_balance += wallet.balance
             total_transactions += wallet.transactions
 
             row = [
                 str(wallet.account_index),  # Просто номер без ведущего нуля
                 wallet.address,  # Полный адрес
-                masked_key,
                 f"{wallet.balance:.4f} ETH",
                 f"{wallet.transactions:,}",  # Форматируем число с разделителями
             ]
@@ -46,7 +42,6 @@ def print_wallets_stats(config: Config, excel_path="data/progress.xlsx"):
             headers = [
                 "№ Account",
                 "Wallet Address",
-                "Private Key",
                 "Balance (ETH)",
                 "Total Txs",
             ]
@@ -86,18 +81,16 @@ def print_wallets_stats(config: Config, excel_path="data/progress.xlsx"):
 
             # Добавляем итоговую статистику
             summary_data = [
-                ["", "", "", "", ""],
-                ["SUMMARY", "", "", "", ""],
+                ["", "", "", ""],
+                ["SUMMARY", "",  "", ""],
                 [
                     "Total",
                     f"{wallets_count} wallets",
-                    "",
                     f"{total_balance:.4f} ETH",
                     f"{total_transactions:,}",
                 ],
                 [
                     "Average",
-                    "",
                     "",
                     f"{avg_balance:.4f} ETH",
                     f"{avg_transactions:.1f}",

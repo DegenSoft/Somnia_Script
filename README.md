@@ -1,8 +1,8 @@
-# StarLabs-Somnia Bot 🚀
+# Somnia Bot 🚀
 
 A powerful and flexible automation tool for **Somnia Network** with multiple features for testnet activities.
 
-**TUTORIAL >>>** [star-labs.gitbook.io/star-labs/software/somnia/ru](https://star-labs.gitbook.io/star-labs/software/somnia/ru) **<<< TUTORIAL**
+
 
 ## 🌟 Features
 
@@ -52,28 +52,22 @@ A powerful and flexible automation tool for **Somnia Network** with multiple fea
 
 ## 🚀 Installation
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/0xStarLabs/StarLabs-Somnia.git
-    cd StarLabs-Somnia
-    ```
-
-2.  **Install dependencies:**
+1.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  Configure your settings in `config.yaml`
-4.  Add your private keys to `data/private_keys.txt`
-5.  Add proxies to `data/proxies.txt`
-6.  Add Twitter tokens to `data/twitter_tokens.txt`
-7.  Add Discord tokens to `data/discord_tokens.txt`
-8.  Add Quills messages to `data/random_message_quills.txt`
+2.  Configure your settings in `config.yaml`
+3.  Add your private keys to `data/private_keys.txt`
+4.  Add proxies to `data/proxies.txt`
+5.  Add Twitter tokens to `data/twitter_tokens.txt`
+6.  Add Discord tokens to `data/discord_tokens.txt`
+7.  Add Quills messages to `data/random_message_quills.txt`
 
 ## 📁 Project Structure
 
 ```
-StarLabs-Somnia/
+Somnia/
 ├── data/
 │   ├── private_keys.txt         # Wallet private keys
 │   ├── proxies.txt              # Proxy addresses
