@@ -1,6 +1,7 @@
 import random
 import asyncio
 import secrets
+from eth_account import Account
 from loguru import logger
 
 from src.model.help.discord import DiscordInviter
@@ -8,7 +9,8 @@ from src.model.help.twitter import Twitter
 from src.model.somnia_network.constants import SomniaProtocol
 from src.model.somnia_network.connect_socials import ConnectSocials
 from src.utils.decorators import retry_async
-
+from src.utils.constants import EXPLORER_URL_SOMNIA
+from src.model.onchain.web3_custom import Web3Custom
 
 SKIP_CAMPAIGNS_IDS = [
     9,
@@ -18,11 +20,123 @@ SKIP_CAMPAIGNS_IDS = [
 ]
 
 
+CAMPAIGNS_NAMES = {
+    26: "Yappers",
+    25: "Foru Open Edition",
+    23: "Ecosystem on the Horizon",
+    21: "QRusader",
+    20: "Migration Discord Points",
+    19: "SocialFi on Somnia",
+    18: "Masks of the Void",
+    17: "Intersection of DeFi & AI",
+    16: "Mullet Cop",
+    15: "Somnia Gaming Room",
+    14: "Onchain Gaming Frenzy",
+    13: "Netherak Demons",
+    12: "Somnia Yapstorm",
+    11: "Somnia Playground",
+    10: "Darktable x Somnia",
+    9: "Somnia Testnet Odyssey - Mascot Memecoin",
+    8: "Somnia Testnet Odyssey - Socials",
+    7: "Somnia Testnet Odyssey - Sharing is Caring",
+    5: "Somnia Devnet Odyssey - Socials 2",
+    2: "Somnia Devnet Odyssey - Socials",
+    1: "Migration Campaign",
+}
+
+# Map task names to campaign IDs
+CAMPAIGN_ID_MAPPING = {
+    "somnia_quest_yappers": 26,
+    "somnia_quest_foru_open_edition": 25,
+    "somnia_quest_ecosystem_on_the_horizon": 23,
+    "somnia_quest_qrusader": 21,
+    "somnia_quest_migration_discord_points": 20,
+    "somnia_quest_socialfi_on_somnia": 19,
+    "somnia_quest_masks_of_the_void": 18,
+    "somnia_quest_intersection_of_defi_ai": 17,
+    "somnia_quest_mullet_cop": 16,
+    "somnia_quest_somnia_gaming_room": 15,
+    "somnia_quest_onchain_gaming_frenzy": 14,
+    "somnia_quest_netherak_demons": 13,
+    "somnia_quest_darktable_x_somnia": 10,
+    "somnia_quest_testnet_odyssey_socials": 8,
+    "somnia_quest_somnia_devnet_odyssey_socials_two": 5,
+    "somnia_quest_somnia_devnet_odyssey_socials": 2,
+    "somnia_quest_migration_campaign": 1,
+}
+
+
 class Campaigns:
-    def __init__(self, somnia_instance: SomniaProtocol):
+    def __init__(self, somnia_instance: SomniaProtocol, somnia_web3: Web3Custom, wallet: Account):
         self.somnia = somnia_instance
         self.twitter_instance: Twitter | None = None
         self.connect_socials = ConnectSocials(somnia_instance)
+        self.somnia_web3 = somnia_web3
+        self.wallet = wallet
+
+    async def execute_specific_quest(self, task_name: str):
+        """
+        Execute a specific quest based on task name.
+        Returns True if the quest was completed successfully, False otherwise.
+        """
+        if not task_name.startswith("somnia_quest_"):
+            logger.error(
+                f"{self.somnia.account_index} | Invalid quest task name: {task_name}"
+            )
+            return False
+
+        if task_name not in CAMPAIGN_ID_MAPPING:
+            logger.error(
+                f"{self.somnia.account_index} | Unknown campaign task: {task_name}"
+            )
+            return False
+
+        campaign_id = CAMPAIGN_ID_MAPPING[task_name]
+        logger.info(
+            f"{self.somnia.account_index} | Executing specific campaign: {CAMPAIGNS_NAMES.get(campaign_id, 'Unknown')} (ID: {campaign_id})"
+        )
+
+        # Initialize Twitter account for campaign
+        if not await self._initialize_twitter():
+            return False
+
+        campaigns = await self._get_all_campaigns()
+
+        # Find the specific campaign
+        target_campaign = None
+        for campaign in campaigns:
+            if campaign["id"] == campaign_id:
+                target_campaign = campaign
+                break
+
+        if not target_campaign:
+            logger.error(
+                f"{self.somnia.account_index} | Campaign with ID {campaign_id} not found"
+            )
+            return False
+
+        # Complete the specific campaign
+        campaign_info = await self._get_campaign_info(campaign_id)
+        logger.info(
+            f"{self.somnia.account_index} | Completing campaign {campaign_info['name']}..."
+        )
+
+        for quest in campaign_info["quests"]:
+            if not quest["isParticipated"] and quest["status"] == "OPEN":
+                # Mint FORU NFT
+                if quest["title"] == "Mint an ForU Open EditionNFT":
+                    if not await self._mint_foru_open_edition():
+                        logger.error(
+                            f"{self.somnia.account_index} | Failed to mint FORU NFT. Skipping to the next campaign."
+                        )
+                        continue
+
+                if not await self._complete_quest(quest):
+                    logger.error(
+                        f"{self.somnia.account_index} | Failed to complete quest {quest['title']} from campaign {campaign_info['name']}."
+                    )
+
+        return True
 
     async def complete_campaigns(self):
         try:
@@ -32,8 +146,44 @@ class Campaigns:
 
             campaigns = await self._get_all_campaigns()
 
+            if not await self._initialize_twitter():
+                return False
+
+            for campaign in campaigns:
+                if campaign["id"] in SKIP_CAMPAIGNS_IDS:
+                    continue
+
+                campaign_info = await self._get_campaign_info(campaign["id"])
+
+                logger.info(
+                    f"{self.somnia.account_index} | Completing campaign {campaign_info['name']}..."
+                )
+
+                for quest in campaign_info["quests"]:
+                    if not quest["isParticipated"] and quest["status"] == "OPEN":
+                        # Mint FORU NFT
+                        if quest["title"] == "Mint an ForU Open EditionNFT":
+                            if not await self._mint_foru_open_edition():
+                                logger.error(
+                                    f"{self.somnia.account_index} | Failed to mint FORU NFT. Skipping to the next campaign."
+                                )
+                                continue
+
+                        if not await self._complete_quest(quest):
+                            logger.error(
+                                f"{self.somnia.account_index} | Failed to complete quest {quest['title']} from campaign {campaign_info['name']}. Skipping to the next campaign."
+                            )
+
+            return True
+
+        except Exception as e:
+            logger.error(f"{self.somnia.account_index} | Campaigns error: {e}.")
+            return False
+
+    async def _initialize_twitter(self):
+        """Initialize Twitter instance for campaign completion"""
+        try:
             while True:
-                # TWITTER INSTANCE
                 self.twitter_instance = Twitter(
                     self.somnia.account_index,
                     self.somnia.twitter_token,
@@ -54,29 +204,10 @@ class Campaigns:
                             return False
                         continue
                 break
-
-            for campaign in campaigns:
-                if campaign["id"] in SKIP_CAMPAIGNS_IDS:
-                    continue
-
-                campaign_info = await self._get_campaign_info(campaign["id"])
-
-                logger.info(
-                    f"{self.somnia.account_index} | Completing campaign {campaign_info['name']}..."
-                )
-
-                for quest in campaign_info["quests"]:
-                    if not quest["isParticipated"] and quest["status"] == "OPEN":
-                        if not await self._complete_quest(quest):
-                            logger.error(
-                                f"{self.somnia.account_index} | Failed to complete quest {quest['title']} from campaign {campaign_info['name']}. Skipping to the next campaign."
-                            )
-
             return True
-
         except Exception as e:
             logger.error(
-                f"{self.somnia.account_index} | Campaigns error: {e}."
+                f"{self.somnia.account_index} | Error initializing Twitter: {e}"
             )
             return False
 
@@ -96,19 +227,23 @@ class Campaigns:
 
                 if quest["type"] == "RETWEET":
                     description = quest["description"]
-                    if 'like' in description.lower():
-                        if not await self.twitter_instance.like(quest["customConfig"]["tweetId"]):
+                    if "like" in description.lower():
+                        if not await self.twitter_instance.like(
+                            quest["customConfig"]["tweetId"]
+                        ):
                             return False
 
                     for _ in range(self.somnia.config.SETTINGS.ATTEMPTS):
-                        ok = await self.twitter_instance.retweet(quest["customConfig"]["tweetId"])
+                        ok = await self.twitter_instance.retweet(
+                            quest["customConfig"]["tweetId"]
+                        )
                         if not ok:
                             continue
 
                         return await self._verify_quest_completion(
                             quest, "social/twitter/retweet"
                         )
-                    
+
                     return False
 
             elif quest["type"] == "JOIN_DISCORD_SERVER":
@@ -144,22 +279,27 @@ class Campaigns:
                 return await self._verify_quest_completion(
                     quest, "social/verify-username"
                 )
-            
+
             elif quest["type"] == "CONNECT_DISCORD":
                 return await self._verify_quest_completion(
                     quest, "social/discord/connect"
                 )
-            
+
             elif quest["type"] == "CONNECT_TWITTER":
                 return await self._verify_quest_completion(
                     quest, "social/twitter/connect"
                 )
-            
+
             elif quest["type"] == "CONNECT_TELEGRAM":
                 return await self._verify_quest_completion(
                     quest, "social/telegram/connect"
                 )
             
+            elif quest["type"] == "NFT_OWNERSHIP":
+                return await self._verify_quest_completion(
+                    quest, "onchain/nft-ownership"
+                )
+
             else:
                 logger.error(
                     f"{self.somnia.account_index} | Unknown quest type: {quest['type']} | {quest['title']} | {quest['campaignId']}"
@@ -171,7 +311,7 @@ class Campaigns:
                 self.somnia.config.SETTINGS.PAUSE_BETWEEN_ATTEMPTS[0],
                 self.somnia.config.SETTINGS.PAUSE_BETWEEN_ATTEMPTS[1],
             )
-            if 'You have reached your daily limit for sending' in str(e):
+            if "You have reached your daily limit for sending" in str(e):
                 logger.error(
                     f"{self.somnia.account_index} | Twitter error. Try again later."
                 )
@@ -328,7 +468,6 @@ class Campaigns:
             await asyncio.sleep(random_pause)
             raise
 
-    
     async def _replace_twitter_token(self) -> bool:
         """
         Replaces the current Twitter token with a new one from spare tokens.
@@ -408,3 +547,60 @@ class Campaigns:
                 f"{self.somnia.account_index} | Error replacing Twitter token: {e}"
             )
             return False
+
+    @retry_async(default_value=False)
+    async def _mint_foru_open_edition(self):
+        try:
+            logger.info(f"{self.somnia.account_index} | Minting FORU NFT...")
+
+            # NEE contract address
+            contract_address = "0x92A9207966971830270CB4886c706fdF5e98a38D"
+
+            # Base payload with method ID 0x84bb1e42
+            payload = "0x94bf804d00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000"
+
+            # Prepare transaction
+            transaction = {
+                "from": self.wallet.address,
+                "to": self.somnia_web3.web3.to_checksum_address(contract_address),
+                "value": 0,  # 0 STT as in the example transaction
+                "nonce": await self.somnia_web3.web3.eth.get_transaction_count(
+                    self.wallet.address
+                ),
+                "chainId": await self.somnia_web3.web3.eth.chain_id,
+                "data": payload,
+            }
+
+            # Get dynamic gas parameters instead of hardcoded 30 Gwei
+            gas_params = await self.somnia_web3.get_gas_params()
+            transaction.update(gas_params)
+
+            # Estimate gas
+            gas_limit = await self.somnia_web3.estimate_gas(transaction)
+            transaction["gas"] = gas_limit
+
+            # Execute transaction
+            tx_hash = await self.somnia_web3.execute_transaction(
+                transaction,
+                self.wallet,
+                await self.somnia_web3.web3.eth.chain_id,
+                EXPLORER_URL_SOMNIA,
+            )
+
+            if tx_hash:
+                logger.success(f"{self.somnia.account_index} | Successfully minted FORU NFT")
+                random_pause = random.randint(10, 20)
+                logger.info(f"{self.somnia.account_index} | Sleeping {random_pause} seconds after minting FORU NFT...")
+                await asyncio.sleep(random_pause)
+                return True
+            
+            else:
+                raise Exception("Failed to mint FORU NFT")
+        except Exception as e:
+            random_pause = random.randint(
+                self.somnia.config.SETTINGS.PAUSE_BETWEEN_ATTEMPTS[0],
+                self.somnia.config.SETTINGS.PAUSE_BETWEEN_ATTEMPTS[1],
+            )
+            logger.error(f"{self.somnia.account_index} | Mint FORU open edition error: {e}. Sleeping {random_pause} seconds...")
+            await asyncio.sleep(random_pause)
+            raise e

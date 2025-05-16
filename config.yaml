@@ -54,11 +54,16 @@ FLOW:
 
 SOMNIA_NETWORK:
     # SETTINGS FOR ACTIONS ON https://quest.somnia.network/
-    # use for ping pong swaps
+    # use for exchange tokens
     SOMNIA_SWAPS:
         # percent of balance to swap
+        BALANCE_PERCENT_TO_SWAP: [10, 20]
         BALANCE_PERCENT_TO_SWAP: [5, 15]
         # random number of swaps
+        NUMBER_OF_SWAPS: [5, 8]
+        # swap all to STT
+        SWAP_ALL_TO_STT: true
+
         NUMBER_OF_SWAPS: [2, 4]
 
     # Only for SEND_TOKENS task on somnia network website
@@ -70,7 +75,7 @@ SOMNIA_NETWORK:
 
         # chance to send tokens to devs. if 100, bot will send tokens to devs wallets every time
         # if 0, bot will send tokens to random wallets
-        SEND_ALL_TO_DEVS_CHANCE: 50
+        SEND_ALL_TO_DEVS_CHANCE: 0
 
     SOMNIA_CAMPAIGNS:
         # if true, bot will replace failed twitter account with next one
